@@ -1,70 +1,66 @@
 import express from "express";
 import mongoose from "mongoose";
-import redis from "redis";
+import { createClient } from "redis";
 
-const app = express();
+const app = express(); // Initialize an Express application instance
 const PORT = 3000;
 
 const mongoURI = "mongodb://localhost:27017/users_db";
+const redisClient = createClient(); // Initialize a Redis client instance
 
-const redisClient = redis.createClient({
-    host: 'localhost',  // Replace with your Redis server host
-    port: 6379,         // Default Redis port
-    password: '',       // If your Redis server is password protected, provide the password here
-    db: 0               // Optional: Select the Redis database number (default is 0)
-});
+redisClient.on("error", (error) => console.error("Redis Client Error", error));
 
-mongoose.connect(mongoURI, {useNewUrlParser: true, useUnifiedTopology: true})
-    .then((connection) => {
-      console.log("Connected to MongoDB");
-      app.set('mongooseConnection', connection);
-    })
-    .catch((err) => {
-      console.error("Error connecting to MongoDB:", err);
-});
-
-
-redisClient.get(`user:${userId}`, (err, data) => {
-    if (err) {
-      return callback(err, null);
+async function initialize() {
+    try {
+        await redisClient.connect();
+        console.log("Connected to Redis");
+        const connection = await mongoose.connect(mongoURI);
+        console.log("Connected to MongoDB");
+        app.set('mongooseConnection', connection);
+    } catch (err) {
+        console.error("Error during initialization:", err);
     }
-    if (data) {
-      // If data exists in Redis, parse and return it
-      callback(null, JSON.parse(data));
-    } else {
-      // No data in cache, return null
-      callback(null, null);
+}
+
+initialize();
+
+const fetchApiData = async function () {
+    try {
+        const data = await mongoose.connection.db.collection('users').find().toArray();
+        return data;
+    } catch (error) {
+        console.log(error);
     }
-});
+};
 
 
-redisClient.on("connect", (err) => {
-    console.log('Connected to Redis server!');
-});
-
-
-
-
+// Define a route to fetch users
 app.get("/users", async (req, res) => {
-  try {
-    const cacheUsers = await redisClient.get('users', (err, reply) => {
-        if (err) {
-          console.error('Error getting key:', err);
-        } else {
-          console.log('The value of myKey is:', reply);  // Should print 'Hello, Redis!'
+    try {
+        // Getting data from Redis
+        const cache = await redisClient.get("users");
+
+        // If data is stored in Redis
+        if (cache != null) {
+            console.log("Data fetched from cache");
+            return res.json(JSON.parse(cache));
         }
-      });
-    if (cacheUsers) {
-        console.log("Data returned from cache")
-      return res.json(JSON.parse(cacheUsers));
+
+        // If data is not stored in Redis
+        // Get data from API
+        const data = await fetchApiData();
+        console.log("Data fetched from API");
+
+        // Saving unique data to Redis with expiration
+        await redisClient.set("users", JSON.stringify(data), { EX: 600, NX: true });
+
+        res.json(data);
+    } catch (error) {
+        res.status(500).send("Error retrieving users");
     }
-    const users = await mongoose.connection.db.collection('users').find().toArray();
-    res.json(users);
-  } catch (err) {
-    res.status(500).send("Error retrieving users");
-  }
 });
 
+// Start the server at the specified PORT
 app.listen(PORT, () => {
-  console.log(`Express server running at http://localhost:${PORT}/`);
+    console.log(`Express server running at http://localhost:${PORT}/`);
 });
