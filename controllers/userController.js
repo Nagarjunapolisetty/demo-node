@@ -1,4 +1,5 @@
 import User from '../models/userModel.js';
+import axios from 'axios';
 
 export const getUsers = async (req, res) => {
     try {
@@ -28,5 +29,16 @@ export const deleteUser = async (req, res) => {
         res.send({ message: 'User deleted successfully' });
     } catch (error) {
         res.status(500).send(error);
+    }
+};
+
+export const getPokemon = async(req, res) => {
+    try {
+        const pokemonData = await axios.get('https://pokeapi.co/api/v2/pokemon/ditto');
+        // console.log(res.data);
+        res.send(pokemonData.data);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Error fetching data for pokemon');
     }
 };
