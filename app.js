@@ -3,15 +3,12 @@ import bodyParser from 'body-parser';
 import userRoutes from './routes/userRoutes.js';
 import { connectDB } from './utils/db.js';
 import { getPokemon } from './controllers/userController.js';
+import dotenv from 'dotenv';
 
+dotenv.config();
 
 const app = express();
-const port = 3000;
-
-// Middleware to parse JSON request bodies
-//app.use(bodyParser.json());
-
-app.use(express.json());
+const port = process.env.PORT;
 
 // Connect to MongoDB
 connectDB();

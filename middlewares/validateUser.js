@@ -1,9 +1,15 @@
 export const validateUser = (req, res, next) => {
-    const { firstName, lastName, email, password, date_of_birth, role } = req.body;
+    const { first_name, last_name, email, password } = req.body;
 
-    if (typeof firstName !== 'string' || firstName.length < 3 || typeof lastName !== 'string' || lastName.length < 3) {
+    if (!first_name || typeof first_name !== 'string' || first_name.length < 3) {
         return res.status(400).json({
-            message: 'First name and Last name must be at least 3 characters',
+            message: 'First name must be at least 3 characters',
+        });
+    }
+
+    if (!last_name || typeof last_name !== 'string' || last_name.length < 3) {
+        return res.status(400).json({
+            message: 'Last name must be at least 3 characters',
         });
     }
 
@@ -44,6 +50,6 @@ export const validateUser = (req, res, next) => {
             message: 'Password must contain at least one special character',
         });
     }
-    
+
     next();
 };
