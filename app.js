@@ -4,11 +4,14 @@ import userRoutes from './routes/userRoutes.js';
 import { connectDB } from './utils/db.js';
 import { getPokemon } from './controllers/userController.js';
 
+
 const app = express();
 const port = 3000;
 
 // Middleware to parse JSON request bodies
-app.use(bodyParser.json());
+//app.use(bodyParser.json());
+
+app.use(express.json());
 
 // Connect to MongoDB
 connectDB();
@@ -17,7 +20,7 @@ connectDB();
 app.use('/users', userRoutes);
 
 // Route to fetch Pokémon data
-app.get('/pokemon', getPokemon);
+//app.get('/pokemon', getPokemon);
 
 // Start the server and listen on the specified port
 app.listen(port, () => {
